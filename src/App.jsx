@@ -1,35 +1,105 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState, useEffect } from 'react';
+import jsPDF from 'jspdf';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [formData, setFormData] = useState({
+    namn: '',
+    telefon: '',
+    adress: '',
+    arbete: '',
+    pris: '',
+    kommentar: '',
+    bredd: '',
+    hojd: '',
+    djup: '',
+    material: 'Ekfanerad MDF'
+  });
+
+  const priser = {
+    'Ekfanerad MDF': 3000,
+    'HDF Lamell': 2500,
+    'MDF': 2000,
+  };
+
+  useEffect(() => {
+    const bredd = parseFloat(formData.bredd);
+    const hojd = parseFloat(formData.hojd);
+    const djup = parseFloat(formData.djup);
+
+    if (!isNaN(bredd) && !isNaN(hojd) && !isNaN(djup)) {
+      const volym = bredd * hojd * djup / 1000000;
+      const prisBeraknad = volym * (priser[formData.material] || 0);
+      setFormData(fd => ({ ...fd, pris: prisBeraknad.toFixed(0) }));
+    } else {
+      setFormData(fd => ({ ...fd, pris: '' }));
+    }
+  }, [formData.bredd, formData.hojd, formData.djup, formData.material]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const bredd = parseFloat(formData.bredd);
+    const hojd = parseFloat(formData.hojd);
+    const djup = parseFloat(formData.djup);
+    const volym = !isNaN(bredd) && !isNaN(hojd) && !isNaN(djup)
+      ? (bredd * hojd * djup / 1000000).toFixed(2) + ' m³'
+      : 'Ej angivet';
+
+    const doc = new jsPDF();
+
+    doc.setFontSize(16);
+    doc.text("Offert", 20, 20);
+
+    doc.setFontSize(12);
+    doc.text(`Namn: ${formData.namn}`, 20, 40);
+    doc.text(`Telefon: ${formData.telefon}`, 20, 50);
+    doc.text(`Adress: ${formData.adress}`, 20, 60);
+    doc.text(`Arbete: ${formData.arbete}`, 20, 70);
+    doc.text(`Pris: ${formData.pris} kr`, 20, 80);
+    doc.text(`Material: ${formData.material}`, 20, 90);
+    doc.text("Mått:", 20, 100);
+    doc.text(`- Bredd: ${formData.bredd} cm`, 25, 110);
+    doc.text(`- Höjd: ${formData.hojd} cm`, 25, 120);
+    doc.text(`- Djup: ${formData.djup} cm`, 25, 130);
+    doc.text(`- Volym: ${volym}`, 25, 140);
+    doc.text("Kommentar:", 20, 155);
+    doc.text(formData.kommentar, 20, 165);
+
+    doc.save(`Offert_${formData.namn}.pdf`);
+
+    alert("Offert skapad och nedladdad!");
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
+      <h1>Kundformulär</h1>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '400px' }}>
+        <input name="namn" placeholder="Namn" onChange={handleChange} value={formData.namn} />
+        <input name="telefon" placeholder="Telefonnummer" onChange={handleChange} value={formData.telefon} />
+        <input name="adress" placeholder="Adress" onChange={handleChange} value={formData.adress} />
+        <input name="arbete" placeholder="Typ av arbete" onChange={handleChange} value={formData.arbete} />
+
+        <select name="material" onChange={handleChange} value={formData.material}>
+          <option value="Ekfanerad MDF">Ekfanerad MDF</option>
+          <option value="HDF Lamell">HDF Lamell</option>
+          <option value="MDF">MDF</option>
+        </select>
+
+        <input name="bredd" placeholder="Bredd (cm)" type="number" onChange={handleChange} value={formData.bredd} />
+        <input name="hojd" placeholder="Höjd (cm)" type="number" onChange={handleChange} value={formData.hojd} />
+        <input name="djup" placeholder="Djup (cm)" type="number" onChange={handleChange} value={formData.djup} />
+
+        <input name="pris" placeholder="Pris (kr)" value={formData.pris} readOnly />
+
+        <textarea name="kommentar" placeholder="Kommentar" onChange={handleChange} value={formData.kommentar} />
+        <button type="submit">Spara kund</button>
+      </form>
+    </div>
+  );
 }
 
-export default App
+export default App;
